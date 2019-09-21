@@ -1,0 +1,15 @@
+name: /Users/skim/workspace/github/fdcl-nrf/real-learn/envs
+channels:
+  - pytorch
+  - gpytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - matplotlib
+  - ipython
+  - pytorch
+  - torchvision
+  - gpytorch
+prefix: /Users/skim/workspace/github/fdcl-nrf/real-learn/envs
+
