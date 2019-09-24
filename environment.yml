@@ -10,4 +10,7 @@ dependencies:
   - pytorch
   - torchvision
   - gpytorch
+  - pip
+  - pip:
+    - gym
 

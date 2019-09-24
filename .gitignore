@@ -1,6 +1,6 @@
 # Custom
 ## Conda local environment
-envs
+.envs
 
 # Created by https://www.gitignore.io/api/vim,latex,linux,matlab,python,windows,visualstudiocode
 # Edit at https://www.gitignore.io/?templates=vim,latex,linux,matlab,python,windows,visualstudiocode
