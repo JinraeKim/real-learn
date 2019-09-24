@@ -1,4 +1,3 @@
-name: /Users/skim/workspace/github/fdcl-nrf/real-learn/envs
 channels:
   - pytorch
   - gpytorch
@@ -11,5 +10,4 @@ dependencies:
   - pytorch
   - torchvision
   - gpytorch
-prefix: /Users/skim/workspace/github/fdcl-nrf/real-learn/envs
 
