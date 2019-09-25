@@ -22,6 +22,7 @@ class Wind:
 
         vel = [0, Wy, 0]
         grad = [[0, 0, 0], [0, 0, dWydz], [0, 0, 0]]
+
         return vel, grad
 
 
@@ -55,10 +56,10 @@ class Env(BaseEnv):
         # aircraft_control = (lb + ub)/2 + (ub - lb)/2*np.asarray(action)
         # controls = dict(aircraft=aircraft_control)
 
-        states = self.states.copy()
+        # states = self.states.copy()
         next_obs, reward, done, _ = super().step(controls)
-        info = {'states': states, 'next_states': self.states}
-        return next_obs, reward, done, info
+        # info = {'states': states, 'next_states': self.states}
+        return next_obs, reward, done, None
 
     def get_ob(self):
         states = self.states['aircraft']
@@ -128,7 +129,6 @@ class Aircraft3Dof(BaseSystem):
 
         dWydt = dWydz * dzdt
 
-        print(self.term1*self.m*V**2*CD)
         dVdt = (self.Tmax*T/self.m - self.term1*V**2*CD - self.g*np.sin(gamma)
                 - dWydt*np.cos(gamma)*np.sin(psi))
         dgammadt = (self.term1*V*CL*np.cos(phi) - self.g*np.cos(gamma)/V
