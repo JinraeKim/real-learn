@@ -1,93 +1,71 @@
 import numpy as np
-from collections import deque
 
-import gpytorch
-from gpytorch.models import ExactGP
-from gpytorch.means import ConstantMean
-from gpytorch.kernels import ScaleKernel, RBFKernel
-from gpytorch.distributions import MultivariateNormal
-from gpytorch.likelihoods import GaussianLikelihood
-from gpytorch.mlls import ExactMarginalLogLikelihood
+import torch
 
-from envs.soaring import Env
+from envs import SoaringEnv
+from agents import Agent
+from utils import Differentiator
 
 
-class ExactGPModel(ExactGP):
-    def __init__(self, train_x, train_y, likelihood):
-        super().__init__(train_x, train_y, likelihood)
-        self.mean_module = ConstantMean()
-        self.covar_module = ScaleKernel(RBFKernel())
+def main():
+    np.random.seed(1)
 
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return MultivariateNormal(mean_x, covar_x)
+    time_step = 0.005
+    time_series = np.arange(0, 2, time_step)
 
+    env = SoaringEnv(
+        initial_state=np.array([0, 0, -5, 13, 0, 0]).astype('float'),
+        dt=time_step
+    )
+    agent = Agent(env, time_step)
+    agent.diff = Differentiator()
 
-class Agent:
-    # Buffer size determines the number of points used to calculate
-    # the derivatives
-    buffer_size = 3
-    sampling_freq = 10  # [Hz]
+    obs = env.reset()
+    obs_series = np.array([], dtype=np.float64).reshape(0, len(obs))
 
-    def __init__(self, env, time_step):
-        # self.env = env
-        self.system = env.systems['aircraft']
-        self.buffer = deque(maxlen=self.buffer_size)
-        self.time_step = time_step
-        self.sampling_interval = int(1 / time_step / self.sampling_freq)
+    for i, t in enumerate(time_series):
+        controls = [0, 1, 0]
 
-        # GP setup
-        self.model = ExactGPModel()
+        next_obs, reward, done, info = env.step(controls)
 
-    def get_data(self):
-        x, u = np.split(np.array(self.buffer), [6, ], axis=1)
-        med_x, med_u = np.median(x, axis=0), np.median(u, axis=0)
-        state_deriv = (x[-1] - x[0]) / (self.time_step * (self.buffer_size - 1))
+        agent.diff.append(t, obs)
 
-        # Find f(x, u)
-        f = self.system._raw_deriv(
-            med_x, 0, med_u, {'wind': (np.zeros(3), np.zeros((3, 3)))})
+        if i % agent.sampling_interval == 1:
+            x, y = agent.diff.get()
+            agent.dataset.append(x, y)
 
-        # Calculate x_dot - f(x, u) = h(x)*d(x)
-        # where d(x) = (Wy_hat(x), dWydz_hat(x))
-        hd = state_deriv - f
+        if done:
+            break
 
-        Wy_hat = hd[1]
-
-        *_, z, V, gamma, psi = med_x
-        dWydz_hat = hd[3] / np.cos(gamma) / np.sin(gamma) / np.sin(psi) / V
-
-        return z, (Wy_hat, dWydz_hat)
+        obs = next_obs
+        obs_series = np.vstack((obs_series, obs))
 
 
-np.random.seed(1)
+if __name__ == '__main__':
+    np.random.seed(1)
 
-time_step = 0.005
-time_series = np.arange(0, 2, time_step)
+    time_step = 0.005
+    time_series = np.arange(0, 2, time_step)
 
-env = Env(
-    initial_state=np.array([0, 0, -5, 13, 0, 0]).astype('float'),
-    dt=time_step
-)
-agent = Agent(env, time_step)
+    env = SoaringEnv(
+        initial_state=np.array([0, 0, -5, 13, 0, 0]).astype('float'),
+        dt=time_step
+    )
+    agent = Agent(env, time_step)
 
-obs = env.reset()
-obs_series = np.array([], dtype=np.float64).reshape(0, len(obs))
+    low = np.hstack((-10, 3, np.deg2rad([-40, -50])))
+    high = np.hstack((-1, 15, np.deg2rad([40, 50])))
+    data_range = np.vstack((low, high))
+    dataset = np.random.uniform(low=low, high=high, size=(1000, 4))
+    dataset = torch.tensor(dataset).float()
 
-for i, t in enumerate(time_series):
-    controls = [0, 1, 0]
+    agent.dataset = dataset
 
-    next_obs, reward, done, info = env.step(controls)
+    agent.train_safe_value()
 
-    agent.buffer.append(np.hstack((obs, controls)))
-
-    if len(agent.buffer) == agent.buffer.maxlen \
-       and i % agent.sampling_interval == 0:
-        data, label = agent.get_data()
-
-    if done:
-        break
-
-    obs = next_obs
-    obs_series = np.vstack((obs_series, obs))
+    # Evaluation
+    agent.safe_value.eval()
+    z, V, gamma = np.meshgrid(*np.linspace(low[:3], high[:3], 20).T)
+    psi = np.ones_like(V) * 0
+    value = np.vectorize(agent.safe_value.from_numpy)
+    s = value(z, V, gamma, psi)

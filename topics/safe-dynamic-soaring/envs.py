@@ -26,7 +26,7 @@ class Wind:
         return vel, grad
 
 
-class Env(BaseEnv):
+class SoaringEnv(BaseEnv):
     def __init__(self, initial_state, dt=0.01, Wref=10, href=10, h0=0.03):
         wind = Wind(Wref, href, h0)
         aircraft = Aircraft3Dof(initial_state=initial_state, wind=wind)

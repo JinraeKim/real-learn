@@ -1,0 +1,20 @@
+import numpy as np
+from collections import deque
+
+
+class Differentiator:
+    def __init__(self):
+        self.buffer = deque(maxlen=2)
+
+    def append(self, t, x):
+        self.buffer.append(np.hstack((t, x)))
+
+    def get(self):
+        buffer = self.buffer
+        if len(buffer) == 0:
+            raise ValueError("The buffer is empty.")
+        if len(buffer) == 1:
+            return np.zeros_like(buffer)[0, 1:]
+        else:
+            x = np.diff(buffer, axis=0)[0]
+            return x[1:] / x[0]
