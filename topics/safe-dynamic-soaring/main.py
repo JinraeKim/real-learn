@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
 
@@ -41,8 +42,34 @@ def main():
         obs_series = np.vstack((obs_series, obs))
 
 
-if __name__ == '__main__':
+def train_sample():
     np.random.seed(1)
+    torch.manual_seed(1)
+
+    time_step = 0.005
+
+    env = SoaringEnv(
+        initial_state=np.array([0, 0, -5, 13, 0, 0]).astype('float'),
+        dt=time_step
+    )
+    agent = Agent(env, lr=1e-4, time_step=time_step)
+
+    low = np.hstack((-10, 3, np.deg2rad([-40, -50])))
+    high = np.hstack((-1, 15, np.deg2rad([40, 50])))
+    dataset = np.random.uniform(low=low, high=high, size=(100000, 4))
+    dataset = torch.tensor(dataset).float()
+
+    agent.dataset = dataset
+
+    agent.train_safe_value(verbose=1)
+
+    # Saving model
+    torch.save(agent.safe_value.state_dict(), 'model.pth')
+
+
+if __name__ == '__main__':
+    if False:
+        train_sample()
 
     time_step = 0.005
     time_series = np.arange(0, 2, time_step)
@@ -51,21 +78,21 @@ if __name__ == '__main__':
         initial_state=np.array([0, 0, -5, 13, 0, 0]).astype('float'),
         dt=time_step
     )
-    agent = Agent(env, time_step)
-
-    low = np.hstack((-10, 3, np.deg2rad([-40, -50])))
-    high = np.hstack((-1, 15, np.deg2rad([40, 50])))
-    data_range = np.vstack((low, high))
-    dataset = np.random.uniform(low=low, high=high, size=(1000, 4))
-    dataset = torch.tensor(dataset).float()
-
-    agent.dataset = dataset
-
-    agent.train_safe_value()
+    agent = Agent(env, lr=1e-4, time_step=time_step)
+    agent.safe_value.load_state_dict(torch.load('model.pth'))
 
     # Evaluation
+    low = np.hstack((-10, 3, np.deg2rad([-40, -50])))
+    high = np.hstack((-0.03, 15, np.deg2rad([40, 50])))
+
     agent.safe_value.eval()
-    z, V, gamma = np.meshgrid(*np.linspace(low[:3], high[:3], 20).T)
-    psi = np.ones_like(V) * 0
+    z, V = np.meshgrid(*np.linspace(low[:2], high[:2], 20).T)
+    gamma = np.ones_like(V) * np.deg2rad(0)
+    psi = np.ones_like(V) * np.deg2rad(0)
     value = np.vectorize(agent.safe_value.from_numpy)
+    constraint = np.vectorize(agent.const_func)
     s = value(z, V, gamma, psi)
+
+    # fig, ax = plt.subplots(1, 1)
+    # ax.contour(z, V, s)
+    # plt.show()
