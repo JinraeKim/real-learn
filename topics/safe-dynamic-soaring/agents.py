@@ -31,7 +31,8 @@ class SafeValue(nn.Module):
             nn.Sigmoid(),
         )
 
-        self.const_func = lambda x: torch.sigmoid(-x[:, 0]/10)
+    def const_func(self, x):
+        return -0.1*x[:, 0].unsqueeze(1)
 
     def forward(self, x):
         return self.const_func(x) - self.model(x)
@@ -56,20 +57,21 @@ class Agent:
     buffer_size = 3
     sampling_freq = 10  # [Hz]
 
-    def __init__(self, env, lr, time_step):
+    def __init__(self, env, lr):
         # self.env = env
         self.system = env.systems['aircraft']
         self.buffer = deque(maxlen=self.buffer_size)
-        self.time_step = time_step
-        self.sampling_interval = int(1 / time_step / self.sampling_freq)
+        self.time_step = env.dt
+        self.sampling_interval = int(1 / self.time_step / self.sampling_freq)
 
         # This model accounts for the function as V(x) = l(x) - model(x)
         self.safe_value = SafeValue()
         self.optimizer = torch.optim.Adam(
             self.safe_value.parameters(), lr=lr)
 
-    def const_func(self, z, V, gamma, psi):
-        return torch.sigmoid(torch.tensor(-z/10)).item()
+        # Losses
+        self.huber_loss = nn.SmoothL1Loss()
+        self.cosine_loss = nn.CosineSimilarity()
 
     def get(self, x):
         # How we define an optimal safety policy when we have the safety
@@ -156,12 +158,16 @@ class Agent:
 
                 dyn[j] = torch.tensor(self.dyn(x[j], umax, dmin)).float()
 
-            loss = torch.norm(
-                torch.sum(value_grad * dyn, axis=1)
-                / (torch.norm(value_grad, dim=1) * torch.norm(dyn, dim=1)
-                   + 1e-8)
-                # - 0.01*self.safe_value(x)
-            )
+            loss = self.huber_loss(torch.min(
+                self.safe_value.const_func(x) - self.safe_value(x),
+                self.cosine_loss(value_grad, dyn).unsqueeze(1)
+            ), torch.zeros(x.shape[0], 1))
+            # loss = torch.norm(
+            #     torch.sum(value_grad * dyn, axis=1)
+            #     / (torch.norm(value_grad, dim=1) * torch.norm(dyn, dim=1)
+            #        + 1e-8)
+            #     # - 0.01*self.safe_value(x)
+            # )
 
             # Update
             self.optimizer.zero_grad()
