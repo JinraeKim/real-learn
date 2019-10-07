@@ -96,6 +96,7 @@ if __name__ == '__main__':
         )
         # observed_pred = agent.disturbance_bound.predict(x)
 
+    disturbance_series = disturbance_series.reshape(-1, 2)
     time_series = time_series[:obs_series.shape[0]]
     observed_pred0, observed_pred1 = \
             agent.disturbance_bound.predict(
@@ -116,12 +117,12 @@ if __name__ == '__main__':
         # Plot all data
         ax0.plot(
             time_series,
-            agent.disturbance_bound.GP0.train_y.numpy(),
+            disturbance_series[:][0],
             'k*'
         )
         ax1.plot(
             time_series,
-            agent.disturbance_bound.GP1.train_y.numpy(),
+            disturbance_series,
             'k*'
         )
 
