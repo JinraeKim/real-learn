@@ -53,7 +53,7 @@ class Agent():
     def get(self):
         # the below constant control input should be replaced by an appropriate
         # one produced by a control law.
-        return [0, 5, 0]
+        return [0, 10, 0]
 
 
 if __name__ == '__main__':
@@ -117,12 +117,12 @@ if __name__ == '__main__':
         # Plot all data
         ax0.plot(
             time_series,
-            disturbance_series[:][0],
+            disturbance_series[:, 0],
             'k*'
         )
         ax1.plot(
             time_series,
-            disturbance_series,
+            disturbance_series[:, 1],
             'k*'
         )
 
@@ -171,10 +171,10 @@ if __name__ == '__main__':
         ax0.set_ylim([-20, 20])
         # ax0.set_xlabel('time (s)')
         ax0.set_ylabel('disturbance0')
-        ax0.legend(['Observed Data', 'Mean', 'Confidence'])
+        ax0.legend(['True', 'Observed Data', 'Mean', 'Confidence'])
         ax1.set_ylim([-10, 10])
         ax1.set_xlabel('time (s)')
         ax1.set_ylabel('disturbance1')
-        ax1.legend(['Observed Data', 'Mean', 'Confidence'])
+        ax0.legend(['True', 'Observed Data', 'Mean', 'Confidence'])
 
         plt.show()

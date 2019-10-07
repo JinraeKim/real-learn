@@ -69,6 +69,7 @@ class DynamicSoaringEnv(BaseEnv):
         state = self.states['aircraft']
         system = self.systems['aircraft']
         lb, ub = system.state_lower_bound, system.state_upper_bound
+        # if True:
         if not np.all([state > lb, state < ub]):
             return True
         else:
