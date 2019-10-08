@@ -73,10 +73,14 @@ class Agent:
         self.huber_loss = nn.SmoothL1Loss()
         self.cosine_loss = nn.CosineSimilarity()
 
-    def get(self, x):
+    def get_safe(self, x):
         # How we define an optimal safety policy when we have the safety
         # function, or the value function.
-        return self.get_optimal_control(x)
+        x = torch.tensor(x).float()
+        value_grad = self.safe_value.get_grad(
+            x.unsqueeze(0), create_graph=True)
+        detached_grad = value_grad.detach().squeeze()
+        return self.get_optimal_control(x, detached_grad)
 
     def obj_func(self, x, u, d, value_grad,
                  out=np.ndarray, create_graph=False):
