@@ -150,9 +150,9 @@ def draw_safe_value_3d(name, model_file, pvars_name, fvars_name, fvals):
 
     # Draw a plot
     mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-    grids = list(map(lambda x: x.grid, pvars))
+    grids = list(map(lambda x: x.axis, pvars))
     src = mlab.pipeline.scalar_field(s)
-    contours = mlab.pipeline.contour_surface(
+    mlab.pipeline.contour_surface(
         src, contours=[0], transparent=False)
     volume = mlab.pipeline.volume(src, vmin=0)
     ranges = np.hstack(list(map(lambda x: [x.min(), x.max()], grids)))
