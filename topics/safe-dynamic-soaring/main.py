@@ -163,16 +163,22 @@ def draw_safe_value_3d(name, model_file, pvars_name, fvars_name, fvals):
 
 
 if __name__ == '__main__':
-    # train('model.pth')
+    # train('safe-model-v0.0.2.pth')
+
+    model_file = 'safe-model-v0.0.2.pth'
 
     # draw_safe_value(
-    #     name='z-and-V.png', model_file='model.pth',
+    #     name='z-and-V.png', model_file=model_file,
     #     pvars_name=('z', 'V'), fvars_name=('gamma', 'psi'), fvals=(0.25, 0.25))
 
     # draw_safe_value(
-    #     name='gamma-and-psi.png', model_file='model.pth',
+    #     name='gamma-and-psi.png', model_file=model_file,
     #     pvars_name=('gamma', 'psi'), fvars_name=('z', 'V'), fvals=(-2.4, 8))
 
     draw_safe_value_3d(
-        name='gamma-and-psi-z-3d.png', model_file='model.pth',
+        name='gamma-and-psi-z-3d.png', model_file=model_file,
         pvars_name=('gamma', 'psi', 'z'), fvars_name=('V',), fvals=(8,))
+
+    # pointwise_validate(
+    #     name='val-gamma-and-psi.png', model_file=model_file,
+    #     pvars_name=('gamma', 'psi'), fvars_name=('z', 'V'), fvals=(-2.4, 8))

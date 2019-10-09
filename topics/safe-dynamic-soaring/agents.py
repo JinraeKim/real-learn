@@ -99,14 +99,16 @@ class Agent:
             return res
 
     def get_optimal_control(self, x, value_grad,
-                            x0=[0.5, 0], method='SLSQP', tol=1e-8):
+                            x0=[0.5, 0], method='SLSQP', tol=1e-8, eps=1e-4):
         # Define a function that will be minimized.
         # In this case, ``u`` should maximize the objective function
         func = lambda u: -self.obj_func(x, u, 0, value_grad)
         lb = self.system.control_lower_bound[1:]
         ub = self.system.control_upper_bound[1:]
         bounds = list(zip(lb, ub))
-        res = sop.minimize(func, x0=x0, bounds=bounds, method=method, tol=tol)
+        res = sop.minimize(
+            func, x0=x0, bounds=bounds, method=method,
+            tol=tol, options=dict(eps=eps))
 
         if res.success:
             return res.x
@@ -114,13 +116,14 @@ class Agent:
             return None
 
     def get_optimal_disturbance(self, x, value_grad,
-                                x0=0, method='SLSQP', tol=1e-8):
+                                x0=0, method='SLSQP', tol=1e-8, eps=1e-4):
         # Find the argumnet minimunm of value dot of d
         func = lambda d: self.obj_func(x, [0.5, 0], d, value_grad)
         _, (_, (_, _, d_true), _) = self.system.wind.get(np.hstack((0, 0, x)))
         bounds = ((d_true - 0.1, d_true + 0.1),)
         res = sop.minimize(
-            func, x0, bounds=bounds, method=method, tol=tol)
+            func, x0, bounds=bounds, method=method,
+            tol=tol, options=dict(eps=eps))
 
         if res.success:
             return res.x
@@ -186,7 +189,9 @@ class Agent:
 
             if i % 50 == 0:
                 print(f'Step: {i:4d} - '
-                      f'running loss: {running_loss:10.4f}')
+                      f'running loss: {running_loss:10.4f} - '
+                      'sample umax: ' + ' '.join(f'{x:.3f}' for x in umax)
+                      + f', dmin: {dmin.item():.3f}')
 
     def get_data(self):
         x, u = np.split(np.array(self.buffer), [6, ], axis=1)
