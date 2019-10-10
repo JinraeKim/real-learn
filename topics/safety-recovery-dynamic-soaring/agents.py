@@ -2,19 +2,21 @@ from utils import GPRegression
 
 
 class EstimateDisturbanceBound():
-    def __init__(self, env):
-        self.GP0 = GPRegression([],
-                               [])
-        self.GP1 = GPRegression([],
-                               [])
+    def __init__(self, env, disturbance_length=2):
+        self.disturbance_length = disturbance_length
+        self.GP = []
+        for i in range(disturbance_length):
+            self.GP.append(GPRegression([], []))
+
         self.system = env.systems['aircraft']
         self.time_series = np.array([])
     
     def get(self, state, t):
         d = self.obs_disturbance(state, type='true')
 
-        self.GP0.get_data(x, d[0])
-        self.GP1.get_data(x, d[1])
+        for i in range(self.disturbance_length):
+            self.GP[i].get_data(x, d[i])
+
         self.time_series = np.concatenate((self.time_series, [t]))
 
     def obs_disturbance(self, state, type='true'):
@@ -37,13 +39,14 @@ class EstimateDisturbanceBound():
         return d
 
     def train(self):
-        self.GP0.train()
-        self.GP1.train()
+        for i in range(self.disturbance_length):
+            self.GP[i].train()
 
     def predict(self, x):
-        _, observed_pred0 = self.GP0.eval(x)
-        _, observed_pred1 = self.GP1.eval(x)
-        return observed_pred0, observed_pred1
+        observed_pred = [None] * self.disturbance_length
+        for i in range(self.disturbance_length):
+            _, observed_pred[i] = self.GP[i].eval(x)
+        return observed_pred
 
 
 class Agent():
@@ -98,83 +101,59 @@ if __name__ == '__main__':
 
     time_series = time_series[:obs_series.shape[0]]
     disturbance_series = disturbance_series.reshape(-1, 2)
-    observed_pred0, observed_pred1 = \
+    observed_pred = \
             agent.disturbance_bound.predict(
-                agent.disturbance_bound.GP1.train_x
+                agent.disturbance_bound.GP[0].train_x
             )
 
     # Plot the estimated disturbance bound
     with torch.no_grad():
-        # Initialize a plot
         fig = plt.figure()
-        ax0 = fig.add_subplot(2, 1, 1)
-        ax1 = fig.add_subplot(2, 1, 2)
+        N = agent.disturbance_bound.disturbance_length
+        ax = [None] * N
+        lower = [None] * N
+        upper = [None] * N
 
-        # Get upper and lower confidence bounds
-        lower0, upper0 = observed_pred0.confidence_region()
-        lower1, upper1 = observed_pred1.confidence_region()
+        for i in range(agent.disturbance_bound.disturbance_length):
+            # Initialize a plot
+            ax[i] = fig.add_subplot(2, 1, i+1)
 
-        # Plot all data
-        ax0.plot(
-            time_series,
-            disturbance_series[:, 0],
-            'k'
-        )
-        ax1.plot(
-            time_series,
-            disturbance_series[:, 1],
-            'k'
-        )
+            # Get upper and lower confidence bounds
+            lower[i], upper[i] = observed_pred[i].confidence_region()
 
-        # Plot training data as black stars
-        ax0.plot(
-            agent.disturbance_bound.time_series,
-            # agent.disturbance_bound.GP.train_x.numpy(), 
-            agent.disturbance_bound.GP0.train_y.numpy(),
-            'r*'
-        )
-        ax1.plot(
-            agent.disturbance_bound.time_series,
-            # agent.disturbance_bound.GP.train_x.numpy(), 
-            agent.disturbance_bound.GP1.train_y.numpy(),
-            'r*'
-        )
+            # Plot all data
+            ax[i].plot(
+                time_series,
+                disturbance_series[:, i],
+                'k'
+            )
 
-        # Plot predictive means as blue line
-        ax0.plot(
-            agent.disturbance_bound.time_series,
-            # agent.disturbance_bound.GP.train_x.numpy(),
-            observed_pred0.mean.numpy(), 
-            'b'
-        )
-        ax1.plot(
-            agent.disturbance_bound.time_series,
-            # agent.disturbance_bound.GP.train_x.numpy(),
-            observed_pred1.mean.numpy(), 
-            'b'
-        )
+            # Plot training data as black stars
+            ax[i].plot(
+                agent.disturbance_bound.time_series,
+                # agent.disturbance_bound.GP.train_x.numpy(), 
+                agent.disturbance_bound.GP[i].train_y.numpy(),
+                'r*'
+            )
 
-        # Shade between the lower and upper confidence bounds
-        ax0.fill_between(
-            agent.disturbance_bound.time_series,
-            lower0.numpy(), 
-            upper0.numpy(), 
-            alpha=0.5
-        )
-        ax1.fill_between(
-            agent.disturbance_bound.time_series,
-            lower1.numpy(), 
-            upper1.numpy(), 
-            alpha=0.5
-        )
+            # Plot predictive means as blue line
+            ax[i].plot(
+                agent.disturbance_bound.time_series,
+                # agent.disturbance_bound.GP.train_x.numpy(),
+                observed_pred[i].mean.numpy(), 
+                'b'
+            )
 
-        ax0.set_ylim([-20, 20])
-        # ax0.set_xlabel('time (s)')
-        ax0.set_ylabel('disturbance0')
-        ax0.legend(['All Data', 'Observed Data', 'Mean', 'Confidence'])
-        ax1.set_ylim([-10, 10])
-        ax1.set_xlabel('time (s)')
-        ax1.set_ylabel('disturbance1')
-        ax0.legend(['All Data', 'Observed Data', 'Mean', 'Confidence'])
+            # Shade between the lower and upper confidence bounds
+            ax[i].fill_between(
+                agent.disturbance_bound.time_series,
+                lower[i].numpy(), 
+                upper[i].numpy(), 
+                alpha=0.5
+            )
+
+            ax[i].set_ylim([-20, 20])
+            ax[i].set_ylabel('disturbance'+str(i))
+            ax[i].legend(['All Data', 'Observed Data', 'Mean', 'Confidence'])
 
         plt.show()
