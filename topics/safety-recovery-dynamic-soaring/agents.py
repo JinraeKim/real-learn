@@ -1,4 +1,4 @@
-from utils import GPRegression
+from utils import GPRegression, Differentiator
 
 
 class EstimateDisturbanceBound():
@@ -6,28 +6,39 @@ class EstimateDisturbanceBound():
         self.disturbance_length = disturbance_length
         self.GP = []
         for i in range(disturbance_length):
-            self.GP.append(GPRegression([], []))
+            self.GP.append(GPRegression())
 
         self.system = env.systems['aircraft']
-        self.time_series = np.array([])
+        self.time_series = []
+        self.NumDiff = Differentiator()
     
-    def put(self, state, t):
-        d = self.obs_disturbance(state, type='true')
-
+    def put(self, state, t, len_lim=10):
+        d = self.obs_disturbance(t, state, type='true')
         for i in range(self.disturbance_length):
-            self.GP[i].put(x, d[i])
+            self.GP[i].put(x, d[i], len_lim=len_lim)
 
-        self.time_series = np.concatenate((self.time_series, [t]))
+        if len(self.time_series) == 0:
+            self.time_series = np.array([t])
+        else:
+            self.time_series = np.concatenate(
+                (self.time_series, t), axis=None
+            )
+            if self.time_series.shape[0] > len_lim:
+                self.time_series = self.time_series[1:]
 
-    def obs_disturbance(self, state, type='true'):
+
+    def obs_disturbance(self, t, x, type='true'):
         if type == 'true':
             # true d
-            (_, Wy, _), (_, (_, _, dWydz), _) = self.system.wind.get(state)
+            (_, Wy, _), (_, (_, _, dWydz), _) = self.system.wind.get(x)
             d = torch.tensor([Wy, dWydz])
         
+        #TODO
         if type == 'est':
+            # estimated d by numerical diff.
             pass
-        # estimated d by numerical diff.
+            self.NumDiff.append(t, x)
+            f_hat = self.NumDiff.get()
         
         return d
 
@@ -70,6 +81,7 @@ if __name__ == '__main__':
 
     agent = Agent(env)
     disturbance_series = np.array([])  # just for true data
+    time_series_for_disturbance = np.array([])
 
     for i, t in enumerate(time_series):
         controls = agent.get()
@@ -87,11 +99,13 @@ if __name__ == '__main__':
             agent.disturbance_bound.put(x, t)
         if i & 100 == 0:
             agent.disturbance_bound.train()
+
+        # for test
         disturbance_series = np.append(
             disturbance_series,
-            agent.disturbance_bound.obs_disturbance(x, type='true').numpy()
+            agent.disturbance_bound.obs_disturbance(t, x, type='true').numpy()
         )
-
+        
     disturbance_series = disturbance_series.reshape(-1, 2)
     time_series = time_series[:obs_series.shape[0]]
     disturbance_series = disturbance_series.reshape(-1, 2)
@@ -125,7 +139,6 @@ if __name__ == '__main__':
             # Plot training data as black stars
             ax[i].plot(
                 agent.disturbance_bound.time_series,
-                # agent.disturbance_bound.GP.train_x.numpy(), 
                 agent.disturbance_bound.GP[i].train_y.numpy(),
                 'r*'
             )
@@ -133,7 +146,6 @@ if __name__ == '__main__':
             # Plot predictive means as blue line
             ax[i].plot(
                 agent.disturbance_bound.time_series,
-                # agent.disturbance_bound.GP.train_x.numpy(),
                 observed_pred[i].mean.numpy(), 
                 'b'
             )

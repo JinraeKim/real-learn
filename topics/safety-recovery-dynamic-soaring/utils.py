@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import gpytorch
 from gpytorch.models import ExactGP
@@ -7,28 +8,50 @@ from gpytorch.distributions import MultivariateNormal
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
+from collections import deque
+
+
+class Differentiator:
+    def __init__(self):
+        self.buffer = deque(maxlen=2)
+
+    def append(self, t, x):
+        self.buffer.append(np.hstack((t, x)))
+
+    def get(self):
+        buffer = self.buffer
+        if len(buffer) == 0:
+            raise ValueError("The buffer is empty.")
+        if len(buffer) == 1:
+            return np.zeros_like(buffer)[0, 1:]
+        else:
+            x = np.diff(buffer, axis=0)[0]
+            return x[1:] / x[0]
+
 
 class GPRegression():
-    def __init__(self, train_x, train_y):
-        self.train_x = train_x
-        self.train_y = train_y
-
+    def __init__(self):
+        self.train_x = []
+        self.train_y = []
         # initialise likelihood and model
         self.likelihood = GaussianLikelihood()
 
-    def put(self, new_x, new_y):
+    def put(self, new_x, new_y, len_lim):
         if len(self.train_x) == 0:
-            self.train_x = new_x.unsqueeze(0)
             self.train_x = new_x.unsqueeze(0)
         else:
             self.train_x = torch.cat((self.train_x, new_x.unsqueeze(0)), 0)
+            if self.train_x.shape[0] > len_lim:
+                self.train_x = self.train_x[1:, :]
+
         if len(self.train_y) == 0:
-            self.train_y = new_y.unsqueeze(0)
             self.train_y = new_y.unsqueeze(0)
         else:
             self.train_y = torch.cat((self.train_y, new_y.unsqueeze(0)), 0)
-    
-    def train(self, lr=0.1, training_iter=50):
+            if self.train_y.shape[0] > len_lim:
+                self.train_y = self.train_y[1:]
+
+    def train(self, lr=0.5, training_iter=10):
         self.model = ExactGPModel(self.train_x,
                                   self.train_y,
                                   self.likelihood)
