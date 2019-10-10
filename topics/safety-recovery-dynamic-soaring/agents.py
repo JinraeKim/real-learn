@@ -63,7 +63,7 @@ if __name__ == '__main__':
     from envs import DynamicSoaringEnv
 
     time_step = 0.01
-    time_series = np.arange(0, 10, time_step)
+    time_series = np.arange(0, 5, time_step)
 
     env = DynamicSoaringEnv(
         initial_state=np.array([0, 0, -5, 13, 0, 0]).astype('float'),
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         obs_series = np.vstack((obs_series, obs))
 
         x = torch.from_numpy(obs).type(dtype=torch.float)
-        if i % 10 == 0:
+        if i % 100 == 0:
             agent.disturbance_bound.get(x, t)
             agent.disturbance_bound.train()
         disturbance_series = np.append(
@@ -97,6 +97,7 @@ if __name__ == '__main__':
         # observed_pred = agent.disturbance_bound.predict(x)
 
     time_series = time_series[:obs_series.shape[0]]
+    disturbance_series = disturbance_series.reshape(-1, 2)
     observed_pred0, observed_pred1 = \
             agent.disturbance_bound.predict(
                 agent.disturbance_bound.GP1.train_x
@@ -116,13 +117,13 @@ if __name__ == '__main__':
         # Plot all data
         ax0.plot(
             time_series,
-            agent.disturbance_bound.GP0.train_y.numpy(),
-            'k*'
+            disturbance_series[:, 0],
+            'k'
         )
         ax1.plot(
             time_series,
-            agent.disturbance_bound.GP1.train_y.numpy(),
-            'k*'
+            disturbance_series[:, 1],
+            'k'
         )
 
         # Plot training data as black stars
@@ -130,13 +131,13 @@ if __name__ == '__main__':
             agent.disturbance_bound.time_series,
             # agent.disturbance_bound.GP.train_x.numpy(), 
             agent.disturbance_bound.GP0.train_y.numpy(),
-            'k*'
+            'r*'
         )
         ax1.plot(
             agent.disturbance_bound.time_series,
             # agent.disturbance_bound.GP.train_x.numpy(), 
             agent.disturbance_bound.GP1.train_y.numpy(),
-            'k*'
+            'r*'
         )
 
         # Plot predictive means as blue line
@@ -170,10 +171,10 @@ if __name__ == '__main__':
         ax0.set_ylim([-20, 20])
         # ax0.set_xlabel('time (s)')
         ax0.set_ylabel('disturbance0')
-        ax0.legend(['Observed Data', 'Mean', 'Confidence'])
+        ax0.legend(['All Data', 'Observed Data', 'Mean', 'Confidence'])
         ax1.set_ylim([-10, 10])
         ax1.set_xlabel('time (s)')
         ax1.set_ylabel('disturbance1')
-        ax1.legend(['Observed Data', 'Mean', 'Confidence'])
+        ax0.legend(['All Data', 'Observed Data', 'Mean', 'Confidence'])
 
         plt.show()

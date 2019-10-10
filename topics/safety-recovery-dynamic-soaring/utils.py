@@ -28,7 +28,7 @@ class GPRegression():
         else:
             self.train_y = torch.cat((self.train_y, new_y.unsqueeze(0)), 0)
     
-    def train(self, lr=0.5, training_iter=50):
+    def train(self, lr=0.1, training_iter=50):
         self.model = ExactGPModel(self.train_x,
                                   self.train_y,
                                   self.likelihood)
