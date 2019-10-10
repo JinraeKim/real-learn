@@ -101,8 +101,8 @@ class Aircraft3Dof(BaseSystem):
     name = 'aircraft'
     state_size = 6
     control_size = 3  # T, CL, phi
-    state_lower_bound = [-np.inf, -np.inf, -np.inf, 3, -np.inf, -np.inf]
-    state_upper_bound = [np.inf, np.inf, -0.01, np.inf, np.inf, np.inf]
+    state_lower_bound = [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf]
+    state_upper_bound = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
     control_lower_bound = [0, -0.5, np.deg2rad(-70)]
     control_upper_bound = [1, 1.5, np.deg2rad(70)]
 
