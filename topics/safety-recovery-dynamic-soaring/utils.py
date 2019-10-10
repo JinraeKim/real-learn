@@ -16,7 +16,7 @@ class GPRegression():
         # initialise likelihood and model
         self.likelihood = GaussianLikelihood()
 
-    def get_data(self, new_x, new_y):
+    def put(self, new_x, new_y):
         if len(self.train_x) == 0:
             self.train_x = new_x.unsqueeze(0)
             self.train_x = new_x.unsqueeze(0)

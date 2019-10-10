@@ -11,11 +11,11 @@ class EstimateDisturbanceBound():
         self.system = env.systems['aircraft']
         self.time_series = np.array([])
     
-    def get(self, state, t):
+    def put(self, state, t):
         d = self.obs_disturbance(state, type='true')
 
         for i in range(self.disturbance_length):
-            self.GP[i].get_data(x, d[i])
+            self.GP[i].put(x, d[i])
 
         self.time_series = np.concatenate((self.time_series, [t]))
 
@@ -83,14 +83,14 @@ if __name__ == '__main__':
         obs_series = np.vstack((obs_series, obs))
 
         x = torch.from_numpy(obs).type(dtype=torch.float)
-        if i % 100 == 0:
-            agent.disturbance_bound.get(x, t)
+        if i % 10 == 0:
+            agent.disturbance_bound.put(x, t)
+        if i & 100 == 0:
             agent.disturbance_bound.train()
         disturbance_series = np.append(
             disturbance_series,
             agent.disturbance_bound.obs_disturbance(x, type='true').numpy()
         )
-        # observed_pred = agent.disturbance_bound.predict(x)
 
     disturbance_series = disturbance_series.reshape(-1, 2)
     time_series = time_series[:obs_series.shape[0]]
