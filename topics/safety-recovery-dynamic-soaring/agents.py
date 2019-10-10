@@ -28,14 +28,7 @@ class EstimateDisturbanceBound():
         if type == 'est':
             pass
         # estimated d by numerical diff.
-
-        if type == 'test':
-            pass
-        # d only for test
-        # import math
-        # d = (torch.sin(x * (2 * math.pi))
-        #      + torch.randn(x.size()) * 0.2)
-
+        
         return d
 
     def train(self):
