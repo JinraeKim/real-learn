@@ -146,19 +146,8 @@ if __name__ == '__main__':
                 alpha=0.5
             )
 
-<<<<<<< HEAD
-        ax0.set_ylim([-20, 20])
-        # ax0.set_xlabel('time (s)')
-        ax0.set_ylabel('disturbance0')
-        ax0.legend(['True', 'Observed Data', 'Mean', 'Confidence'])
-        ax1.set_ylim([-10, 10])
-        ax1.set_xlabel('time (s)')
-        ax1.set_ylabel('disturbance1')
-        ax0.legend(['True', 'Observed Data', 'Mean', 'Confidence'])
-=======
             ax[i].set_ylim([-20, 20])
             ax[i].set_ylabel('disturbance'+str(i))
             ax[i].legend(['All Data', 'Observed Data', 'Mean', 'Confidence'])
->>>>>>> 3a6433fb0c9c85d7bba6abe4277da6a86581522a
 
         plt.show()
