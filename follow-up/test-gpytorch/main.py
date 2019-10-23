@@ -85,10 +85,5 @@ with torch.no_grad():
     ax.plot(test_x.numpy(), observed_pred.mean.numpy(), 'b')
     # Shade between the lower and upper confidence bounds
     ax.fill_between(test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5)
-    # Shade between the lower and upper confidence bounds of prediction
-    ax.fill_between(test_x.numpy(),
-                    lower_pred.numpy(),
-                    upper_pred.numpy(),
-                    alpha=0.5)
     ax.set_ylim([-3, 3])
-    ax.legend(['Observed Data', 'Mean', 'Confidence', 'Confidence of pred'])
+    ax.legend(['Observed Data', 'Mean', 'Confidence'])
